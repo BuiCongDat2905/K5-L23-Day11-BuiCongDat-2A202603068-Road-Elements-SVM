@@ -127,7 +127,7 @@ def caption(img: Image.Image, text: str) -> None:
     d.text((x, y), text, fill=(255, 255, 255), font=f)
 
 
-def fig_fisheye(fish: list[cvat_xml.Image], out: Path) -> None:
+def fig_fisheye(fish: list[cvat_xml.Image], out: Path) -> str:
     # Chon anh fisheye co polyline lane nhieu diem nhat de phong to doan cong.
     best: tuple[int, cvat_xml.Image] | None = None
     for im in fish:
@@ -140,27 +140,31 @@ def fig_fisheye(fish: list[cvat_xml.Image], out: Path) -> None:
     slot = Path(im.name).name.split("_")[0]
     src = Path("data") / Path(im.name).name
     base = Image.open(src).convert("RGB")
-    drawn = draw_shapes(base, im, width=4)
-    legend(ImageDraw.Draw(drawn), 20, 20)
+    clean = draw_shapes(base, im, width=4)
 
     lanes = [s for s in im.shapes if s.label == "lane"]
-    if lanes:
-        pts = lanes[0].points
-        xs = [p[0] for p in pts]
-        ys = [p[1] for p in pts]
-        box = (max(0, min(xs) - 60), max(0, min(ys) - 60), min(base.width, max(xs) + 60), min(base.height, max(ys) + 60))
-        ImageDraw.Draw(drawn).rectangle(box, outline=(255, 255, 255), width=3)
-        crop = drawn.crop(box)
-        scale = min(2.0, 520 / max(1, crop.width), 520 / max(1, crop.height))
-        crop = crop.resize((int(crop.width * scale), int(crop.height * scale)), Image.LANCZOS)
-        canvas = Image.new("RGB", (base.width, base.height + crop.height + 20), (28, 30, 34))
-        canvas.paste(drawn, (0, 0))
-        canvas.paste(crop, (0, base.height + 10))
-        caption(canvas, f"{slot} - phong to polyline cong ({len(pts)} diem)")
-        canvas.save(out)
-    else:
-        drawn.save(out)
+    pts = lanes[0].points
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+    bw, bh = 520, 420
+    left, top = max(0, int(cx - bw / 2)), max(0, int(cy - bh / 2))
+    box = (left, top, min(base.width, left + bw), min(base.height, top + bh))
+
+    crop = clean.crop(box)
+    crop = crop.resize((crop.width * 2, crop.height * 2), Image.LANCZOS)
+
+    drawn = clean.copy()
+    ImageDraw.Draw(drawn).rectangle(box, outline=(255, 255, 255), width=4)
+    legend(ImageDraw.Draw(drawn), 20, 20)
+
+    canvas = Image.new("RGB", (base.width, base.height + crop.height + 20), (28, 30, 34))
+    canvas.paste(drawn, (0, 0))
+    canvas.paste(crop, (0, base.height + 10))
+    caption(canvas, f"{slot} - phong to polyline cong ({len(pts)} diem, khung trang)")
+    canvas.save(out)
     print("fig3:", out)
+    return slot
 
 
 def fig_xml(zip_path: Path, out: Path) -> None:
@@ -193,7 +197,9 @@ def main(argv: list[str]) -> int:
 
     fig_labels(out_dir / "fig1-labels.png")
     fig_front(front, out_dir / "fig2-front-A08.png")
-    fig_fisheye(fish, out_dir / "fig3-fisheye-B01.png")
+    (out_dir / "fig3-fisheye-B01.png").unlink(missing_ok=True)
+    slot = fig_fisheye(fish, out_dir / "fig3-fisheye-tmp.png")
+    (out_dir / "fig3-fisheye-tmp.png").rename(out_dir / f"fig3-fisheye-{slot}.png")
     fig_xml(front_zip, out_dir / "fig4-xml.png")
     return 0
 

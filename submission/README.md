@@ -14,8 +14,9 @@ Không thêm vạch nào. Các cảnh báo QC1-02 (thiếu L1/R1) giữ nguyên 
 | `buicongdat-front.zip` | CVAT for images 1.1, 16 ảnh A01–A16, không kèm ảnh | có |
 | `buicongdat-fisheye.zip` | CVAT for images 1.1, 12 ảnh B01–B12, không kèm ảnh | có |
 | `buicongdat-manifest.json` | Manifest bàn giao, `revision` 1, `contains_images: false` | không |
-| `buicongdat-qc1-for-ban.md` | Phiếu QC 1 khung, chờ lô của bạn được ghép | có, 15 điểm |
-| `buicongdat-report.md` | Báo cáo cá nhân | có, 5 điểm |
+| `buicongdat-qc1-for-chuviethung.md` | Phiếu QC 1 cho lô của chuviethung, đã kiểm 6 ảnh, quyết định Rework | có, 15 điểm |
+| `buicongdat-report.md` | Báo cáo cá nhân, đã điền đủ 8 mục | có, 5 điểm |
+| `figures/` | Bốn ảnh chụp CVAT thật (`cvat1`–`cvat4`) + bốn hình phụ lục dựng từ XML (`fig1`–`fig4`) | — |
 
 ## Kiểm lại trước khi nộp
 
@@ -26,13 +27,30 @@ python -m road_lab.road_check lint submission\buicongdat-front.zip submission\bu
 
 Kết quả hiện tại: 28 ảnh, 18 cảnh báo — 7 nặng (đều là QC1-02 thiếu L1/R1, ca miễn), 11 chính (10 QC1-05 vạch đôi vẽ hai polyline, 1 QC1-11 gợi ý `edge_zone` của B04), 0 nhẹ.
 
-## Việc còn lại phải làm tay
+## Việc còn lại
 
-1. **Phiếu QC 1 (15 điểm).** Phiếu đang là khung. Khi nhận `buicongdat`-style zip của bạn được ghép: mở 6 ảnh, đếm số nhãn đã kiểm, điền bảng 12 mã kèm cột "Số mục kiểm", ghi từng lỗi có mã ảnh và label id, tính tỉ lệ và ra quyết định. Đổi tên file thành `<tên bạn>-qc1-for-<tên bạn kia>.md`.
-2. **Báo cáo mục 4.** Điền phản hồi phiếu QC 1 nhận được sau khi bạn kia trả phiếu.
-3. **Báo cáo mục 6.** Chèn 4 ảnh chụp màn hình: tab Labels, một ảnh front đã gán đủ, một ảnh fisheye phóng to đoạn cong, một đoạn XML có `<polyline label="lane">`.
-4. **Báo cáo mục 7.** Đọc lại phần tự đánh giá đã viết sẵn, sửa nếu không khớp thực tế.
-5. **Phiên bản CVAT** ở đầu báo cáo: mở Help → About rồi ghi.
+Không còn mục nào bắt buộc phải điền tay. Báo cáo đã đủ 8 mục:
+
+- Mục 4 ghi rõ là **tự kiểm lô của mình** (chuviethung chưa gửi phiếu), kèm bảng mã lỗi, cột đồng ý và đã sửa.
+- Mục 8 có đủ hai cột số row-anchor của A01 R1, lấy từ `road_lab.rowanchor` trên bài mình và bài chuviethung; hai bên lệch 0.0 px ở cả bốn hàng có số.
+- Mục 6 là bốn ảnh chụp CVAT thật.
+
+Nếu chuviethung gửi phiếu sau, chỉ cần sửa cột "Đồng ý?" ở mục 4 theo nhận xét của bạn ấy.
+
+
+Phiếu QC 1 đã xong: [buicongdat-qc1-for-chuviethung.md](buicongdat-qc1-for-chuviethung.md), kiểm 6 ảnh A01, A04, A08, B01, B04, B05 trên 106 nhãn. Kết quả Rework vì 4 lỗi nặng: A04 và B04 thiếu tag `camera`, B05 có hai lane mang `position` L1/L2 trong khi camera `fisheye_left` buộc `other`. Còn hai ca mơ hồ ghi ở mục riêng (vạch đôi hay vạch đứt bị tách ở A01 và A04).
+
+Sinh lại phiếu bằng script khi cần đổi mẫu ảnh:
+
+```powershell
+$env:PYTHONPATH="src"; $env:PYTHONIOENCODING="utf-8"
+python tools\make_qc1.py chuviethung-front.zip chuviethung-fisheye.zip buicongdat chuviethung
+```
+
+Chụp lại ảnh nếu cần: `$env:CVAT_USER="..." ; $env:CVAT_PASS="..." ; python tools/cvat_shots.py` (thêm `CVAT_XML` trỏ tới file zip export để chụp mục 6.4).
+
+Các mục khác đã điền xong: phiên bản CVAT 2.82.0, bảng số lượng nhãn, bảng ca khó, bảng kiểm file export, tự đánh giá.
+
 
 ## Nộp bằng link git
 
